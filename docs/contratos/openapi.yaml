@@ -1,0 +1,629 @@
+openapi: 3.0.3
+info:
+  title: MS1 - Pasajeros / Tickets API
+  version: 0.1.0
+  description: >
+    Microservicio de pasajeros y tickets del Aeropuerto Internacional Jorge Chávez.
+    Base pública /api/pasajeros (nginx -> puerto 8001). Consume a MS2 (vuelos) via REST.
+servers:
+  - url: http://localhost:8001
+    description: Local (docker-compose)
+
+tags:
+  - name: Health
+  - name: Pasajeros
+  - name: Categorias Migratorias
+  - name: Tickets
+  - name: Check-in
+  - name: Equipajes
+  - name: MS2 Mock
+
+paths:
+  /health:
+    get:
+      tags: [Health]
+      summary: Estado del servicio
+      operationId: health
+      responses:
+        '200':
+          description: Servicio operativo
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  service:
+                    type: string
+                    example: ms1-pasajeros
+
+  /health/db:
+    get:
+      tags: [Health]
+      summary: Estado de conexion a la base de datos MySQL
+      operationId: healthDb
+      responses:
+        '200':
+          description: Conexion a BD verificada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  database:
+                    type: string
+                    example: connected
+        '500':
+          description: Error de conexion a la BD
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: error
+                  database:
+                    type: string
+
+  /pasajeros:
+    post:
+      tags: [Pasajeros]
+      summary: Crear pasajero (persona + pasajero)
+      operationId: crearPasajero
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CrearPasajeroRequest'
+      responses:
+        '201':
+          description: Pasajero creado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PersonaConPasajero'
+            example:
+              id_persona: 123456
+              nombre: Maria
+              apellido: Lopez
+              fecha_nacimiento: '1995-03-20'
+              tipo_documento: DNI
+              numero_documento: '87654321'
+              id_categoria: 1
+        '400':
+          $ref: '#/components/responses/Error400'
+        '409':
+          description: Ya existe pasajero con ese tipo_documento + numero_documento
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+              example:
+                error:
+                  code: DUPLICADO
+                  message: Ya existe un pasajero con ese tipo_documento y numero_documento
+        '422':
+          description: Categoria inexistente o datos invalidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+              example:
+                error:
+                  code: CATEGORIA_NO_EXISTE
+                  message: La categoria 99 no existe
+    get:
+      tags: [Pasajeros]
+      summary: Buscar pasajeros
+      operationId: buscarPasajeros
+      parameters:
+        - in: query
+          name: tipo_documento
+          schema:
+            $ref: '#/components/schemas/TipoDocumento'
+          description: Filtrar por tipo de documento
+        - in: query
+          name: numero_documento
+          schema:
+            type: string
+            maxLength: 15
+          description: Filtrar por numero de documento
+      responses:
+        '200':
+          description: Lista de pasajeros
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PersonaConPasajero'
+
+  /pasajeros/{id_persona}/tickets:
+    get:
+      tags: [Tickets]
+      summary: Tickets de un pasajero
+      operationId: ticketsDePasajero
+      parameters:
+        - $ref: '#/components/parameters/IdPersona'
+      responses:
+        '200':
+          description: Tickets del pasajero
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Ticket'
+        '404':
+          $ref: '#/components/responses/Error404'
+
+  /pasajeros/{id_persona}:
+    get:
+      tags: [Pasajeros]
+      summary: Obtener pasajero por ID
+      operationId: obtenerPasajero
+      parameters:
+        - $ref: '#/components/parameters/IdPersona'
+      responses:
+        '200':
+          description: Pasajero encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PersonaConPasajero'
+        '404':
+          $ref: '#/components/responses/Error404'
+
+  /categorias-migratorias:
+    get:
+      tags: [Categorias Migratorias]
+      summary: Listar categorias migratorias con tarifa (TUUA)
+      operationId: listarCategorias
+      responses:
+        '200':
+          description: Las 3 categorias
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CategoriaMigratoria'
+
+  /tickets:
+    post:
+      tags: [Tickets]
+      summary: Emitir ticket (valida vuelo contra MS2)
+      operationId: emitirTicket
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CrearTicketRequest'
+      responses:
+        '201':
+          description: Ticket emitido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ticket'
+              example:
+                id_ticket: 1
+                precio: 185.00
+                fecha_emision: '2026-09-08'
+                estado_boarding: Emitido
+                id_vuelo: 12345
+                id_persona: 123456
+        '400':
+          $ref: '#/components/responses/Error400'
+        '422':
+          description: Vuelo inexistente o cancelado en MS2; o persona inexistente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+              example:
+                error:
+                  code: VUELO_NO_EXISTE
+                  message: El vuelo 30000 no existe en MS2
+        '502':
+          $ref: '#/components/responses/Error502'
+    get:
+      tags: [Tickets]
+      summary: Buscar tickets
+      operationId: buscarTickets
+      parameters:
+        - in: query
+          name: vuelo_id
+          schema:
+            type: integer
+          description: Filtrar por vuelo (soft MS2)
+      responses:
+        '200':
+          description: Lista de tickets
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Ticket'
+
+  /tickets/{id_ticket}:
+    get:
+      tags: [Tickets]
+      summary: Obtener ticket por ID
+      operationId: obtenerTicket
+      parameters:
+        - $ref: '#/components/parameters/IdTicket'
+      responses:
+        '200':
+          description: Ticket encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ticket'
+        '404':
+          $ref: '#/components/responses/Error404'
+
+  /tickets/{id_ticket}/checkin:
+    post:
+      tags: [Check-in]
+      summary: Hacer check-in de un ticket (1:1)
+      operationId: checkinTicket
+      parameters:
+        - $ref: '#/components/parameters/IdTicket'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CheckinRequest'
+      responses:
+        '201':
+          description: Check-in registrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Checkin'
+              example:
+                id_ticket: 1
+                fecha_hora: '2026-09-08T14:22:00Z'
+                counter: C01
+                con_equipaje: true
+        '404':
+          $ref: '#/components/responses/Error404'
+        '409':
+          description: El ticket ya tiene check-in (1:1)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+              example:
+                error:
+                  code: DUPLICADO
+                  message: El ticket ya tiene check-in registrado
+
+  /equipajes:
+    post:
+      tags: [Equipajes]
+      summary: Registrar equipaje (Tag ID unico, peso > 0)
+      operationId: registrarEquipaje
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CrearEquipajeRequest'
+      responses:
+        '201':
+          description: Equipaje registrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Equipaje'
+              example:
+                id: BHS000000001
+                peso: 15.40
+                id_persona: 123456
+                id_vuelo: 12345
+        '400':
+          $ref: '#/components/responses/Error400'
+        '422':
+          description: Vuelo inexistente o cancelado en MS2; o persona inexistente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+              example:
+                error:
+                  code: VUELO_CANCELADO
+                  message: El vuelo 999 esta cancelado
+        '409':
+          description: Tag ID ya existe
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+              example:
+                error:
+                  code: DUPLICADO
+                  message: Ya existe equipaje con tag ID BHS000000001
+        '502':
+          $ref: '#/components/responses/Error502'
+    get:
+      tags: [Equipajes]
+      summary: Buscar equipajes
+      operationId: buscarEquipajes
+      parameters:
+        - in: query
+          name: pasajero_id
+          schema:
+            type: integer
+        - in: query
+          name: vuelo_id
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Lista de equipajes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Equipaje'
+
+  /ms2/vuelos/{id_vuelo}/exists:
+    get:
+      tags: [MS2 Mock]
+      summary: Mock local del endpoint MS2-07 (vuelos existe)
+      operationId: mockVueloExists
+      parameters:
+        - name: id_vuelo
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Resultado de existencia y estado de vuelo
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  exists:
+                    type: boolean
+                    example: true
+                  id_vuelo:
+                    type: integer
+                    example: 12345
+                  estado:
+                    type: string
+                    enum: [Programado, Embarcando, Despegado, Aterrizado, Retrasado, Cancelado]
+                    example: Programado
+        '404':
+          $ref: '#/components/responses/Error404'
+
+components:
+  parameters:
+    IdPersona:
+      name: id_persona
+      in: path
+      required: true
+      schema:
+        type: integer
+      description: ID de la persona/pasajero
+    IdTicket:
+      name: id_ticket
+      in: path
+      required: true
+      schema:
+        type: integer
+      description: ID del ticket
+
+  responses:
+    Error400:
+      description: Peticion invalida
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorBody'
+    Error404:
+      description: No encontrado
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorBody'
+    Error422:
+      description: Entidad no procesable (validacion)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorBody'
+    Error502:
+      description: Error al consumir MS2
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorBody'
+
+  schemas:
+    TipoDocumento:
+      type: string
+      enum: [DNI, Pasaporte, Carnet de Extranjeria]
+    NombreCategoriaMigratoria:
+      type: string
+      enum: [Nacional, Internacional, Transito]
+    EstadoBoarding:
+      type: string
+      enum: [Emitido, Check-in, Embarcado, No-show, Cancelado]
+
+    ErrorBody:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              example: DUPLICADO
+            message:
+              type: string
+              example: Ya existe un pasajero con ese documento
+
+    CrearPasajeroRequest:
+      type: object
+      required: [nombre, apellido, fecha_nacimiento, tipo_documento, numero_documento, id_categoria]
+      properties:
+        nombre:
+          type: string
+          maxLength: 50
+        apellido:
+          type: string
+          maxLength: 50
+        fecha_nacimiento:
+          type: string
+          format: date
+          example: '1990-05-12'
+        tipo_documento:
+          $ref: '#/components/schemas/TipoDocumento'
+        numero_documento:
+          type: string
+          maxLength: 15
+          example: '72234567'
+        id_categoria:
+          type: integer
+
+    PersonaConPasajero:
+      type: object
+      properties:
+        id_persona:
+          type: integer
+        nombre:
+          type: string
+        apellido:
+          type: string
+        fecha_nacimiento:
+          type: string
+          format: date
+        tipo_documento:
+          $ref: '#/components/schemas/TipoDocumento'
+        numero_documento:
+          type: string
+        id_categoria:
+          type: integer
+
+    CategoriaMigratoria:
+      type: object
+      properties:
+        id:
+          type: integer
+        nombre:
+          $ref: '#/components/schemas/NombreCategoriaMigratoria'
+        tarifa:
+          type: number
+          format: double
+          example: 34.50
+
+    CrearTicketRequest:
+      type: object
+      required: [precio, fecha_emision, id_vuelo, id_persona]
+      properties:
+        precio:
+          type: number
+          format: double
+          example: 185.00
+        fecha_emision:
+          type: string
+          format: date
+          example: '2026-09-08'
+        id_vuelo:
+          type: integer
+          description: Soft ref a MS2 (1 - 25000)
+        id_persona:
+          type: integer
+          description: FK a persona
+
+    Ticket:
+      type: object
+      properties:
+        id_ticket:
+          type: integer
+        precio:
+          type: number
+          format: double
+        fecha_emision:
+          type: string
+          format: date
+        estado_boarding:
+          $ref: '#/components/schemas/EstadoBoarding'
+        id_vuelo:
+          type: integer
+        id_persona:
+          type: integer
+
+    CheckinRequest:
+      type: object
+      properties:
+        counter:
+          type: string
+          maxLength: 10
+        con_equipaje:
+          type: boolean
+          default: false
+
+    Checkin:
+      type: object
+      properties:
+        id_ticket:
+          type: integer
+        fecha_hora:
+          type: string
+          format: date-time
+        counter:
+          type: string
+          nullable: true
+        con_equipaje:
+          type: boolean
+
+    CrearEquipajeRequest:
+      type: object
+      required: [id, peso, id_persona, id_vuelo]
+      properties:
+        id:
+          type: string
+          maxLength: 20
+          description: Tag ID (BHS)
+          example: TAg6738042123
+        peso:
+          type: number
+          format: double
+          description: Peso en kg, > 0
+          example: 15.40
+        id_persona:
+          type: integer
+        id_vuelo:
+          type: integer
+
+    Equipaje:
+      type: object
+      properties:
+        id:
+          type: string
+        peso:
+          type: number
+          format: double
+        id_persona:
+          type: integer
+        id_vuelo:
+          type: integer

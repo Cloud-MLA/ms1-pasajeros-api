@@ -28,6 +28,7 @@ target/
 *.local.yml
 data/
 dumps/
+mysql_data/
 
 # --- Editores / SO ---
 .idea/

@@ -1,0 +1,15 @@
+.git
+.gitignore
+.env
+.env.*
+.venv
+__pycache__
+*.pyc
+*.pyo
+docs
+mysql_data
+AGENTS.md
+README.md
+base_datos.md
+.editorconfig
+LICENSE
