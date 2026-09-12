@@ -1,17 +1,20 @@
 # AGENTS.md — Guía del Dev A (MS1)
 
 Contexto rápido para trabajar como **Dev A** en el proyecto **CS2032 — Cloud Computing (2026-2)**
-(Aeropuerto Internacional Jorge Chávez). Resumen de lo que hay en `docs/` listo para actuar hasta
-**F1 completa + integración MS1→MS2 (revisión 11-Set)**, sin volver a leer todo el repo.
+(Aeropuerto Internacional Jorge Chávez). Resumen listo para actuar hasta
+**F1 + F2 en la org; contenedor `ingesta-ms1` creado; Hito 1 = Sáb 12-Set (hoy)**, sin volver a leer
+todo el repo.
 
 ---
 
 ## 1. Rol y entregables del Dev A
 
-- Repo de código que lidero: **`ms1-pasajeros-api`** (aún `_pendiente_` en `INDEX.md`).
+- Repo de código que lidero: **`ms1-pasajeros-api`** — ya en GitHub:
+  `https://github.com/Cloud-MLA/ms1-pasajeros-api` (merge PR #2 12-Set + Actions GHCR success).
+  Mi acceso en la org es **`pull`** → los cambios entran por **fork (`Guillermo-Heredia`) + PR**.
 - Stack: **Python + FastAPI + MySQL 8**.
-- También soy responsable del contenedor **`ingesta-ms1`** (en `aeropuerto-data-science`): lee la BD
-  MySQL → CSV → S3 (`raw/ms1/`).
+- También soy responsable del contenedor de ingesta **`ingesta-ms1`** (vive en
+  `aeropuerto-data-science/ingesta/ingesta-ms1/`): lee la BD MySQL → CSV → S3 (`raw/ms1/`).
 - Documentación que mantengo en este repo: `docs/er/ms1-mysql-er.*` (E/R de MySQL), evidencias en
   `docs/evidencias/backend/`, y mi sección del informe.
 
@@ -25,7 +28,7 @@ Contexto rápido para trabajar como **Dev A** en el proyecto **CS2032 — Cloud 
 
 Fases: **F0** = Mié 2 – Vie 4 · **F1** = Sáb 6 – Sáb 12 · **F2** = Sáb 13 – Vie 19.
 
-**Hoy: Vie 11-Set 2026** — Hito 1 mañana; F2 arrancado.
+**Hoy: Sáb 12-Set 2026** — Hito 1 es **hoy 23:59**; F2 arrancado.
 
 ## 3. La BD de MS1 (`pasajeros_db`)
 
@@ -122,7 +125,8 @@ Cada servicio expone `GET /health`, `GET /openapi.json` y Swagger-UI en `/docs`.
 - **Formato ingesta S3 (DS-06):** `raw/ms1/<tabla>/<fecha>/` (6 tablas, CSV, 100% pull).
   Depende de bucket S3 creado por Lead (DS-04) y VM-INGESTA (DS-05).
 - **Seed reproducible:** `SEED` fijo para data ficticia; ~5k pasajeros en rango 100k–160k.
-- **Repo sin git:** por decisión del usuario, no se inicializa git en este repo (commits vía PR en docs/).
+- **Repo en GitHub:** el repo ya está en `Cloud-MLA/ms1-pasajeros-api` (PR #2 mergeado 12-Set). Mi
+  acceso es `pull` → los commits entran por **fork (`Guillermo-Heredia`) + PR**; el Lead mergea.
 
 ### Decisiones resueltas (F1)
 
@@ -133,9 +137,15 @@ Cada servicio expone `GET /health`, `GET /openapi.json` y Swagger-UI en `/docs`.
 - **openapi.yaml - corrección aplicada:** el enum `estado_vuelo` del mock en `docs/contratos/openapi.yaml`
   fue corregido a: `Programado · Embarcando · Despegado · Aterrizado · Retrasado · Cancelado`
   (según `docs/contratos/enums.md` canonical). Corregido en F1.16.
-- **ingesta-ms1 (DS-06):** contenedor Python que vive en `aeropuerto-data-science/`. Yo escribo el
-  código: conexión MySQL → `SELECT *` 6 tablas → CSV → `put_object` a `raw/ms1/<tabla>/<fecha>/` en S3.
-  Para F1 preparo el script; integro cuando DS-04 (bucket) + DS-05 (VM-INGESTA) estén listos.
+- **ingesta-ms1 (DS-06):** contenedor Python que vive en `aeropuerto-data-science/ingesta/ingesta-ms1/`
+  (`Dockerfile`, `ingesta.py`, `requirements.txt`, `.env.example`, `README.md`).
+  Lectura MySQL → `SELECT *` 6 tablas → CSV → `put_object` a `raw/ms1/<tabla>/<fecha>/` en S3.
+  Flag `--dry-run` (sin S3) guarda en `output/`. **Dry-run probado con los 20k reales**
+  (60 002 personas, 25 002 tickets, 22 816 equipajes; evidencia
+  `docs/evidencias/backend/ingesta_ms1_dryrun.txt`, registros locales
+  `/home/fkrampus/.../aeropuerto-data-science/ingesta/ingesta-ms1/`). **PR #8** → `Cloud-MLA/aeropuerto-data-science`
+  (fork `Guillermo-Heredia`; acceso `pull`). El run real a S3 depende de DS-04 (bucket) + DS-05
+  (VM-INGESTA/credenciales).
 - **Equipaje también valida vuelo contra MS2 (canon `requerimientos.md` §3.2):** las referencias suaves
   (`ticket.vuelo_id`, `equipaje.vuelo_id`) "se validan con una llamada REST al escribir". `POST /equipajes`
   reusa `validar_vuelo` → vuelo inexistente/cancelado = 422. Aplicado en la revisión F1.20.
@@ -148,8 +158,11 @@ Cada servicio expone `GET /health`, `GET /openapi.json` y Swagger-UI en `/docs`.
 - **Demo/entrega local = 1 máquina** (decisión del usuario): los 3 MS corren en composes locales con
   puertos distintos por host — MS1 `8001`, MS2 `8002`, MS3 `3003` — y se interconectan vía
   `host.docker.internal` (en Linux: `extra_hosts: ["host.docker.internal:host-gateway"]`).
-- **Tag de imagen final = GHCR (canon BE-TX-05):** `ghcr.io/cloud-mla/ms1-pasajeros-api:v1.0`. Debo
-  agregar `.github/workflows/build-push-ghcr.yml` a este repo (hoy no existe; MS2 ya lo tiene).
+- **Tag de imagen final = GHCR (canon BE-TX-05):** `ghcr.io/cloud-mla/ms1-pasajeros-api:v1.0`.
+  Workflow `.github/workflows/build-push-ghcr.yml` ya está en el repo y **corrió con éxito** tras el
+  merge del PR #2 (run en `main` → `build & push` success). Falta tag `v1.0` + push para el `latest`.
+  *Nota: los paquetes GHCR de la org están **privados por defecto**; si el Lead/otros no pueden
+  `docker pull`, hay que marcarlos públicos (Packages settings → Change visibility).*
 - **Seeds de 20k (F2):** usar el **generador compartido de Dev D** (`aeropuerto-data-science/seeds/`,
   DS-02), **no** mini-seeds ad-hoc. Orden MS2 → MS1 → MS3. `seed_local.py` sigue siendo solo dev/testing.
 - **Hito 1 (Sáb 12):** seeds ~2–5k; los 20k pertenecen a Hito 2. MS1 con su seed 5k ya cumple; MS2
@@ -234,46 +247,66 @@ el otro lado esté listo.
 
 **Nota sobre seed:** `seed_local.py` es **solo para dev/testing local**. El `seeds/` compartido de Dev D (`aeropuerto-data-science/seeds/`, DS-02) genera CSVs para data Science. No reemplaza uno al otro.
 
-### 11-Set · Revisión MS2/MS3 + plan de integración (hoy)
+### 12-Set · Estado real + matriz de dependencias (Hito 1 hoy)
 
-Revisados `ms2-vuelos-api` y `ms3-infraestructura-api` contra el canon `docs/plan/backend.md`.
+**Hecho HOY (Sáb 12-Set, tarde):**
+- ✅ **MS1-09: carga 20k REALIZADA.** CSVs generados con `seeds/generar.py` (`--ms 2` luego `--ms 1`,
+  SEED fijo) y volcados con `python -m app.scripts.load_csv`. Evidencia `COUNT(*)` en
+  `docs/evidencias/backend/load20k_count.txt`: persona **60 000**, categoria 3, pasajero 60 000,
+  ticket **25 000**, checkin 16 577, equipaje **22 814**. (ticket ≥20k ✅, equipaje ≥20k ✅)
+- ✅ **`load_csv.py` corregido:** bug de ruta `parents[4]`→`parents[3]` (apuntaba a
+  `utec/aeropuerto-data-science` inexistente) y carga por lotes vía SQLAlchemy en vez de
+  `LOAD DATA LOCAL INFILE` (requería `local_infile` en MySQL/pymysql). Normaliza fechas ISO→MySQL.
+- ✅ **Contenedor `ingesta-ms1` terminado + PR #8 abierto** → `Cloud-MLA/aeropuerto-data-science`
+  (fork `Guillermo-Heredia`, acceso `pull`): `Dockerfile`, `ingesta.py` (flag `--dry-run`),
+  `requirements.txt`, `.env.example`, `README.md`, `.gitignore` actualizado. Dry-run con 20k reales OK
+  (60 002 personas, 25 002 ticket, 22 816 equipaje) → evidencia `ingesta_ms1_dryrun.txt`.
+- ✅ Smoke (API local `localhost:8001`) con BD llena: `RESULTADO: OK`; pytest **32 ✓**.
 
-| Repo | Estado | Gaps |
-|---|---|---|
-| **MS2** (Dev B) | MS2-01..07 ✓ (`/vuelos/{id}/exists` real + CI GHCR + Swagger `/docs`) | **seed de vuelos** (Hito 1 2–5k → MS2-09 20k con seeds compartidos); MS2-08 tripulación; MS2-10 JVM `t3.small`; MS2-11 pruebas; MS2-12 README/tag |
-| **MS3** (Dev C) | Base Express+Mongo + CRUD recursos/incidencias/asignaciones parcial | **MS3-05 NO llama a MS2** (env `MS2_URL=http://localhost:8082` roto: puerto mal y `localhost` desde contenedor); bugs `findByIdAndUpdate(id)` sin body y `error.message` con `error` no definido; MS3-06..10; sin CI GHCR; README vacío |
-| **MS1** (yo) | F1 ✓ + evidencias (`smoke_test.txt`, `log_ms1_ms2.txt`, collection Postman) | apuntar `MS2_BASE_URL` a MS2 real; MS1-09 (20k, bloqueado por vuelos de Dev B); informe/E-R; capturas PNG |
+**¿Qué puedo hacer AHORA (sin esperar a nadie)?**
+- ✅ MS1 desplegado en la org (`Cloud-MLA/ms1-pasajeros-api`, PR #2 mergeado, Actions OK).
+- ✅ Carga 20k lista en la BD local (por si hace falta re-volcar: `load_csv.py` funciona end-to-end).
+- ⏳ Run real de ingesta a S3: espera bucket + credenciales (DS-04/DS-05).
 
-**Fase A — MS1→MS2 real (hoy, demo 1 máquina):**
-- [ ] Levantar MS2 local (`docker compose up -d --build` en `ms2-vuelos-api`); health
-      `GET localhost:8002/api/vuelos/ping`.
-- [ ] Confirmar vuelos cargados en MS2 (Dev B); sin datos solo se prueban 422 (`VUELO_NO_EXISTE`) y
-      502 (`MS2_NO_DISPONIBLE`) — el happy path espera el seed.
-- [ ] MS1 `.env`: `MS2_BASE_URL=http://host.docker.internal:8002` + `extra_hosts` en el
-      compose + restart.
-- [ ] Probar `POST /tickets` y `POST /equipajes` contra MS2 real; verificar log saliente
-      ("Saliente MS1→MS2"); actualizar `log_ms1_ms2.txt` + correr smoke.
+**¿A quién espero (y por qué)?**
+- **Mariano (Dev B, MS2)** → *mi dependencia nº 1*: sin sus **vuelos cargados** no puedo correr el
+  happy path real de `POST /tickets` (422 `VUELO_NO_EXISTE`). Mi carga 20k ya está hecha (soft refs);
+  el REST MS1→MS2 real necesita MS2 arriba con vuelos (Mariano tiene `seed/generar_seed.py` 2k + los
+  25k compartidos en `seeds/output/ms2/vuelo.csv`).
+- **Lead** → bucket S3 (DS-04) + credenciales/VM-INGESTA (DS-05) para el run real de `ingesta-ms1`;
+  mergear PR #8 (`aeropuerto-data-science`) y dar `push`/merge en la org para ms1; nginx
+  `/api/pasajeros`→`8001` (BE-TX-06); hacer públicos los paquetes GHCR para `docker pull`.
+- **Fabricio (Dev D)** → NO me bloquea hoy: `seeds/` ya está mergeado. Su `glue/`+`athena/` dependen
+  de que ya tenga datos en S3 (corren después del run real).
+
+**¿Quién depende de mí?**
+- Lead/Fabricio para poblar `raw/ms1/` en S3 (ingesta real).
+- Dev C (MS3) NO depende de mí directamente; sí de MS2 igual que yo.
 
 **Fase B — Mi cierre F2 (Hito 2):**
 - [x] `.github/workflows/build-push-ghcr.yml` (BE-TX-05) **escrito** (12-Set) — se activa al subir repo a GitHub.
-- [ ] MS1-09: carga 20k `ticket`/`equipaje` con seeds compartidos (DS-02) + `COUNT(*)`. **Bloqueado por
-      vuelos de Dev B.** Script listo: `python -m app.scripts.load_csv`.
+- [x] **MS1-09: carga 20k** `ticket`/`equipaje` con seeds compartidos (DS-02) + `COUNT(*)` (12-Set,
+      evidencia `load20k_count.txt`).
 - [x] MS1-10: Swagger completo (`docs/contratos/openapi.yaml` con ejemplos/errores 400/404/409/422/502,
       11 paths) + pruebas pytest **32 ✓** (`tests/`).
 - [x] MS1-11: README (levantar local / tras corte / vars env / MS2 real / 20k).
 
 **Fase C/D — Avisar a Dev B, Dev C y Lead (no es mi código):**
-- Dev B: seed vuelos (Hito 1 → 20k), MS2-08/10/11/12. **Crítico para desbloquear MS1-09 y MS1→MS2 happy path.**
+- Dev B: seed vuelos (el turno es suyo: cargar los vuelos, Hito 1 → 20k), MS2-08/10/11/12. **Crítico
+  para el happy path MS1→MS2 real** (mi 20k ya está). Avisarle que sus 25k vuelos ya existen en
+  `seeds/output/ms2/vuelo.csv`.
 - Dev C: MS3-05 (validar vuelo contra MS2 con `MS2_URL=http://host.docker.internal:8002/api/vuelos`),
   bugs, MS3-06..10, CI GHCR.
-- Lead: nginx `/api/pasajeros`→`8001` (BE-TX-06); bucket S3 + VM-INGESTA (DS-04/05) para que corra mi
-  `ingesta_ms1.py`; despliegue 2 VM-PROD + ALB + Gateway (BE-INT-01..09).
+- Lead: mergear PR #8; nginx `/api/pasajeros`→`8001` (BE-TX-06); bucket S3 + VM-INGESTA (DS-04/05)
+  para que corra el run real del contenedor; despliegue 2 VM-PROD + ALB + Gateway (BE-INT-01..09).
 
 ### F2 — Completar (después de Hito 1, resumen)
-- [ ] Carga masiva ≥**20 000** en `ticket` y `equipaje` (una vez) + evidencia `COUNT(*)`.
-  *(En la carga se setea `estado_boarding` en `Check-in`/`Embarcado` para Q4 de Athena.)* Script: `python -m app.scripts.load_csv`.
+- [x] Carga masiva ≥**20 000** en `ticket` y `equipaje` (una vez) + evidencia `COUNT(*)` (12-Set,
+      `load20k_count.txt`). *Q4 de Athena: verificar que el seed setea `estado_boarding` en
+      `Check-in`/`Embarcado` (checkin/equipaje%).*
 - [x] Swagger completo + ejemplos + pruebas (happy path + validación). — pytest 32 ✓ + openapi con ejemplos.
-- [x] README (levantar local / tras corte) — completo. tag `v1.0` + GHCR pendiente de repo en GitHub.
+- [x] README (levantar local / tras corte) — completo. tag `v1.0` + GHCR pendiente de push (ya en
+  GitHub, Actions success; ver nota de paquete privado) en §6.
 - [ ] Sección del informe + E/R definitivo.
 - [ ] Capturas PNG de Swagger/Postman para completar F1.17 (el smoke + logs + collection Postman ya
   existen en `docs/evidencias/backend/`: `smoke_test.txt`, `log_ms1_ms2.txt`, `ms1.postman_collection.json`).
