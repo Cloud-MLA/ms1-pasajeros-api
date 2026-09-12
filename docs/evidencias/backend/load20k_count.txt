@@ -1,0 +1,7 @@
+t	n
+persona	60000
+categoria_migratoria	3
+pasajero	60000
+ticket	25000
+checkin	16577
+equipaje	22814
