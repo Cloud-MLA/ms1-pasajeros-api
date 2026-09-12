@@ -1,0 +1,250 @@
+
+### health
+  GET http://localhost:8001/health -> 200
+  {
+  "status": "ok",
+  "service": "ms1-pasajeros"
+}
+
+### health/db
+  GET http://localhost:8001/health/db -> 200
+  {
+  "status": "ok",
+  "database": "connected"
+}
+
+### categorias-migratorias
+  GET http://localhost:8001/categorias-migratorias -> 200
+  [
+  {
+    "nombre": "Nacional",
+    "tarifa": 12.5,
+    "id": 1
+  },
+  {
+    "nombre": "Internacional",
+    "tarifa": 38.45,
+    "id": 2
+  },
+  {
+    "nombre": "Transito",
+    "tarifa": 18.0,
+    "id": 3
+  }
+]
+
+# Mock MS2 -> vuelo valido: 1; vuelo cancelado: 19
+
+### POST /pasajeros
+  POST http://localhost:8001/pasajeros -> 201
+  {
+  "id_persona": 160001,
+  "nombre": "Juan",
+  "apellido": "Perez",
+  "fecha_nacimiento": "1992-04-11",
+  "tipo_documento": "DNI",
+  "numero_documento": "79071948",
+  "id_categoria": 1
+}
+
+### POST /pasajeros (duplicado -> 409)
+  POST http://localhost:8001/pasajeros -> 409
+  {
+  "error": {
+    "code": "DUPLICADO",
+    "message": "Ya existe un pasajero con ese tipo_documento y numero_documento"
+  }
+}
+
+### POST /pasajeros (categoria invalida -> 422)
+  POST http://localhost:8001/pasajeros -> 422
+  {
+  "error": {
+    "code": "CATEGORIA_NO_EXISTE",
+    "message": "La categoria 99 no existe"
+  }
+}
+
+### GET /pasajeros/160001
+  GET http://localhost:8001/pasajeros/160001 -> 200
+  {
+  "id_persona": 160001,
+  "nombre": "Juan",
+  "apellido": "Perez",
+  "fecha_nacimiento": "1992-04-11",
+  "tipo_documento": "DNI",
+  "numero_documento": "79071948",
+  "id_categoria": 1
+}
+
+### GET /pasajeros?tipo_documento=&numero_documento=
+  GET http://localhost:8001/pasajeros?tipo_documento=DNI&numero_documento=79071948 -> 200
+  [
+  {
+    "id_persona": 160001,
+    "nombre": "Juan",
+    "apellido": "Perez",
+    "fecha_nacimiento": "1992-04-11",
+    "tipo_documento": "DNI",
+    "numero_documento": "79071948",
+    "id_categoria": 1
+  }
+]
+
+### POST /tickets (vuelo ok 1)
+  POST http://localhost:8001/tickets -> 201
+  {
+  "id_ticket": 5,
+  "precio": 185.0,
+  "fecha_emision": "2026-09-10",
+  "estado_boarding": "Emitido",
+  "id_vuelo": 1,
+  "id_persona": 160001
+}
+
+### POST /tickets (vuelo cancelado -> 422 19)
+  POST http://localhost:8001/tickets -> 422
+  {
+  "error": {
+    "code": "VUELO_CANCELADO",
+    "message": "El vuelo 19 esta cancelado"
+  }
+}
+
+### POST /tickets (vuelo inexistente -> 422)
+  POST http://localhost:8001/tickets -> 422
+  {
+  "error": {
+    "code": "VUELO_NO_EXISTE",
+    "message": "El vuelo 99999 no existe en MS2"
+  }
+}
+
+### GET /tickets/5
+  GET http://localhost:8001/tickets/5 -> 200
+  {
+  "id_ticket": 5,
+  "precio": 185.0,
+  "fecha_emision": "2026-09-10",
+  "estado_boarding": "Emitido",
+  "id_vuelo": 1,
+  "id_persona": 160001
+}
+
+### GET /tickets?vuelo_id=1
+  GET http://localhost:8001/tickets?vuelo_id=1 -> 200
+  [
+  {
+    "id_ticket": 3,
+    "precio": 185.0,
+    "fecha_emision": "2026-09-10",
+    "estado_boarding": "Emitido",
+    "id_vuelo": 1,
+    "id_persona": 159999
+  },
+  {
+    "id_ticket": 4,
+    "precio": 185.0,
+    "fecha_emision": "2026-09-10",
+    "estado_boarding": "Emitido",
+    "id_vuelo": 1,
+    "id_persona": 160000
+  },
+  {
+    "id_ticket": 5,
+    "precio": 185.0,
+    "fecha_emision": "2026-09-10",
+    "estado_boarding": "Emitido",
+    "id_vuelo": 1,
+    "id_persona": 160001
+  }
+]
+
+### GET /pasajeros/160001/tickets
+  GET http://localhost:8001/pasajeros/160001/tickets -> 200
+  [
+  {
+    "id_ticket": 5,
+    "precio": 185.0,
+    "fecha_emision": "2026-09-10",
+    "estado_boarding": "Emitido",
+    "id_vuelo": 1,
+    "id_persona": 160001
+  }
+]
+
+### POST /tickets/5/checkin
+  POST http://localhost:8001/tickets/5/checkin -> 201
+  {
+  "id_ticket": 5,
+  "fecha_hora": "2026-09-10T20:25:48",
+  "counter": null,
+  "con_equipaje": false
+}
+
+### POST /tickets/5/checkin (2do -> 409)
+  POST http://localhost:8001/tickets/5/checkin -> 409
+  {
+  "error": {
+    "code": "DUPLICADO",
+    "message": "El ticket ya tiene check-in registrado"
+  }
+}
+
+### GET /tickets/999999 (no existe -> 404)
+  GET http://localhost:8001/tickets/999999 -> 404
+  {
+  "error": {
+    "code": "NO_ENCONTRADO",
+    "message": "Ticket no encontrado"
+  }
+}
+
+### POST /equipajes (vuelo ok 1)
+  POST http://localhost:8001/equipajes -> 201
+  {
+  "id": "TAg90719480101",
+  "peso": 15.4,
+  "id_persona": 160001,
+  "id_vuelo": 1
+}
+
+### POST /equipajes (vuelo inexistente -> 422)
+  POST http://localhost:8001/equipajes -> 422
+  {
+  "error": {
+    "code": "VUELO_NO_EXISTE",
+    "message": "El vuelo 99999 no existe en MS2"
+  }
+}
+
+### GET /equipajes?pasajero_id=160001
+  GET http://localhost:8001/equipajes?pasajero_id=160001 -> 200
+  [
+  {
+    "id": "TAg90719480101",
+    "peso": 15.4,
+    "id_persona": 160001,
+    "id_vuelo": 1
+  }
+]
+
+### GET /equipajes?vuelo_id=1
+  GET http://localhost:8001/equipajes?vuelo_id=1 -> 200
+  [
+  {
+    "id": "TAg90719480101",
+    "peso": 15.4,
+    "id_persona": 160001,
+    "id_vuelo": 1
+  },
+  {
+    "id": "TAgSMOKE001",
+    "peso": 15.4,
+    "id_persona": 159999,
+    "id_vuelo": 1
+  }
+]
+
+==============================
+RESULTADO: OK

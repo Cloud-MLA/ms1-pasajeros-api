@@ -1,0 +1,10 @@
+app-1  | 2026-09-10 20:25:48,303 INFO app.services.ticket_service: Saliente MS1→MS2: GET http://127.0.0.1:8000/ms2/vuelos/1/exists
+app-1  | 2026-09-10 20:25:48,316 INFO app.services.ticket_service: Saliente MS1→MS2: GET http://127.0.0.1:8000/ms2/vuelos/1/exists → 200
+app-1  | 2026-09-10 20:25:48,331 INFO app.services.ticket_service: Saliente MS1→MS2: GET http://127.0.0.1:8000/ms2/vuelos/19/exists
+app-1  | 2026-09-10 20:25:48,340 INFO app.services.ticket_service: Saliente MS1→MS2: GET http://127.0.0.1:8000/ms2/vuelos/19/exists → 200
+app-1  | 2026-09-10 20:25:48,350 INFO app.services.ticket_service: Saliente MS1→MS2: GET http://127.0.0.1:8000/ms2/vuelos/99999/exists
+app-1  | 2026-09-10 20:25:48,359 INFO app.services.ticket_service: Saliente MS1→MS2: GET http://127.0.0.1:8000/ms2/vuelos/99999/exists → 404
+app-1  | 2026-09-10 20:25:48,453 INFO app.services.ticket_service: Saliente MS1→MS2: GET http://127.0.0.1:8000/ms2/vuelos/1/exists
+app-1  | 2026-09-10 20:25:48,462 INFO app.services.ticket_service: Saliente MS1→MS2: GET http://127.0.0.1:8000/ms2/vuelos/1/exists → 200
+app-1  | 2026-09-10 20:25:48,478 INFO app.services.ticket_service: Saliente MS1→MS2: GET http://127.0.0.1:8000/ms2/vuelos/99999/exists
+app-1  | 2026-09-10 20:25:48,488 INFO app.services.ticket_service: Saliente MS1→MS2: GET http://127.0.0.1:8000/ms2/vuelos/99999/exists → 404

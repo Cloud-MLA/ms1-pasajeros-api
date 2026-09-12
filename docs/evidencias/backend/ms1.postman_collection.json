@@ -1,0 +1,145 @@
+{
+  "info": {
+    "_postman_id": "ms1-pasajeros-api",
+    "name": "MS1 - Pasajeros / Tickets API",
+    "description": "Collection generada desde docs/contratos/openapi.yaml (contract-first). Base local: http://localhost:8001",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseURL", "value": "http://localhost:8001", "type": "string" },
+    { "key": "id_persona", "value": "", "type": "string" },
+    { "key": "id_ticket", "value": "", "type": "string" },
+    { "key": "id_vuelo", "value": "1", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        { "name": "GET /health", "request": { "method": "GET", "header": [], "url": { "raw": "{{baseURL}}/health", "host": ["{{baseURL}}"], "path": ["health"] } }, "response": [] },
+        { "name": "GET /health/db", "request": { "method": "GET", "header": [], "url": { "raw": "{{baseURL}}/health/db", "host": ["{{baseURL}}"], "path": ["health", "db"] } }, "response": [] }
+      ]
+    },
+    {
+      "name": "Categorias Migratorias",
+      "item": [
+        { "name": "GET /categorias-migratorias", "request": { "method": "GET", "header": [], "url": { "raw": "{{baseURL}}/categorias-migratorias", "host": ["{{baseURL}}"], "path": ["categorias-migratorias"] } }, "response": [] }
+      ]
+    },
+    {
+      "name": "Pasajeros",
+      "item": [
+        {
+          "name": "POST /pasajeros",
+          "event": [
+            {
+              "listen": "test",
+              "script": { "type": "text/javascript", "exec": ["const j = pm.response.json();", "if (pm.response.code === 201) { pm.collectionVariables.set('id_persona', String(j.id_persona)); }"] }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"nombre\": \"Juan\",\n  \"apellido\": \"Perez\",\n  \"fecha_nacimiento\": \"1992-04-11\",\n  \"tipo_documento\": \"DNI\",\n  \"numero_documento\": \"79071865\",\n  \"id_categoria\": 1\n}" },
+            "url": { "raw": "{{baseURL}}/pasajeros", "host": ["{{baseURL}}"], "path": ["pasajeros"] }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /pasajeros (buscar por doc)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseURL}}/pasajeros?tipo_documento=DNI&numero_documento=79071865", "host": ["{{baseURL}}"], "path": ["pasajeros"], "query": [{ "key": "tipo_documento", "value": "DNI" }, { "key": "numero_documento", "value": "79071865" }] }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /pasajeros/{id_persona}",
+          "request": { "method": "GET", "header": [], "url": { "raw": "{{baseURL}}/pasajeros/{{id_persona}}", "host": ["{{baseURL}}"], "path": ["pasajeros", "{{id_persona}}"] } },
+          "response": []
+        },
+        {
+          "name": "GET /pasajeros/{id_persona}/tickets",
+          "request": { "method": "GET", "header": [], "url": { "raw": "{{baseURL}}/pasajeros/{{id_persona}}/tickets", "host": ["{{baseURL}}"], "path": ["pasajeros", "{{id_persona}}", "tickets"] } },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Tickets",
+      "item": [
+        {
+          "name": "POST /tickets (valida vuelo MS2)",
+          "event": [
+            {
+              "listen": "test",
+              "script": { "type": "text/javascript", "exec": ["const j = pm.response.json();", "if (pm.response.code === 201) { pm.collectionVariables.set('id_ticket', String(j.id_ticket)); }"] }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"precio\": 185.00,\n  \"fecha_emision\": \"2026-09-10\",\n  \"id_vuelo\": 1,\n  \"id_persona\": {{id_persona}}\n}" },
+            "url": { "raw": "{{baseURL}}/tickets", "host": ["{{baseURL}}"], "path": ["tickets"] }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /tickets?vuelo_id=",
+          "request": { "method": "GET", "header": [], "url": { "raw": "{{baseURL}}/tickets?vuelo_id={{id_vuelo}}", "host": ["{{baseURL}}"], "path": ["tickets"], "query": [{ "key": "vuelo_id", "value": "{{id_vuelo}}" }] } },
+          "response": []
+        },
+        {
+          "name": "GET /tickets/{id_ticket}",
+          "request": { "method": "GET", "header": [], "url": { "raw": "{{baseURL}}/tickets/{{id_ticket}}", "host": ["{{baseURL}}"], "path": ["tickets", "{{id_ticket}}"] } },
+          "response": []
+        },
+        {
+          "name": "POST /tickets/{id_ticket}/checkin",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"counter\": \"C1\",\n  \"con_equipaje\": true\n}" },
+            "url": { "raw": "{{baseURL}}/tickets/{{id_ticket}}/checkin", "host": ["{{baseURL}}"], "path": ["tickets", "{{id_ticket}}", "checkin"] }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Equipajes",
+      "item": [
+        {
+          "name": "POST /equipajes (valida vuelo MS2)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"id\": \"TAgPOSTMAN001\",\n  \"peso\": 15.40,\n  \"id_persona\": {{id_persona}},\n  \"id_vuelo\": 1\n}" },
+            "url": { "raw": "{{baseURL}}/equipajes", "host": ["{{baseURL}}"], "path": ["equipajes"] }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /equipajes?pasajero_id=",
+          "request": { "method": "GET", "header": [], "url": { "raw": "{{baseURL}}/equipajes?pasajero_id={{id_persona}}", "host": ["{{baseURL}}"], "path": ["equipajes"], "query": [{ "key": "pasajero_id", "value": "{{id_persona}}" }] } },
+          "response": []
+        },
+        {
+          "name": "GET /equipajes?vuelo_id=",
+          "request": { "method": "GET", "header": [], "url": { "raw": "{{baseURL}}/equipajes?vuelo_id={{id_vuelo}}", "host": ["{{baseURL}}"], "path": ["equipajes"], "query": [{ "key": "vuelo_id", "value": "{{id_vuelo}}" }] } },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "MS2 Mock",
+      "item": [
+        {
+          "name": "GET /ms2/vuelos/{id_vuelo}/exists",
+          "request": { "method": "GET", "header": [], "url": { "raw": "{{baseURL}}/ms2/vuelos/{{id_vuelo}}/exists", "host": ["{{baseURL}}"], "path": ["ms2", "vuelos", "{{id_vuelo}}", "exists"] } },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

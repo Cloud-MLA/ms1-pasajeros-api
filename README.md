@@ -1,39 +1,99 @@
-# ms1-pasajeros-api
-MS1 — Pasajeros / Tickets · Python + FastAPI + MySQL 8
+# MS1 — Pasajeros / Tickets
 
-Parte del Proyecto Parcial CS2032 — Cloud Computing (2026-2).
-Contexto y arquitectura: [`cloud-computing-proyecto`](https://github.com/btoroled/cloud-computing-proyecto) ·
-Plan de tareas: [`plan/backend.md` §4](https://github.com/btoroled/cloud-computing-proyecto/blob/main/docs/plan/backend.md) ·
-Dueño: Guillermo.
+Microservicio de gestión de pasajeros, tickets, check-in y equipaje del
+Aeropuerto Internacional Jorge Chávez. Python 3.12 + FastAPI + MySQL 8.
 
-## Puesta en marcha (base desde la plantilla · BE-TX-02)
+Parte del proyecto CS2032 — Cloud Computing (2026-2).
 
-Este repo trae ya los archivos comunes: `.editorconfig`, `.gitignore`, `.env.example`,
-`.github/workflows/build-push-ghcr.yml`. Fuente: [plantilla común](https://github.com/Cloud-MLA/aeropuerto-infra-deploy/tree/main/plantilla).
+## Arquitectura
 
-**Pendiente de scaffold (MS1-01, Guillermo):**
-- Copiar `plantilla/docker/Dockerfile.python` como `Dockerfile` y ajustar el entrypoint (`app.main:app`).
-- `docker-compose.yml` local: app + `mysql:8`.
-- `GET /health` y `GET /docs` (Swagger-UI).
-- `openapi.yaml` borrador (BE-TX-03).
+- **Puerto interno 8001** (nginx → `/api/pasajeros/*`)
+- 6 tablas: `persona`, `categoria_migratoria`, `pasajero`, `ticket`, `checkin`, `equipaje`
+- Consume a **MS2** vía REST para validar `id_vuelo` antes de crear tickets y equipajes
 
-## Convenciones
+```
+MS1 (pasajeros, :8001) → POST /tickets → GET {MS2}/api/vuelos/{id}/exists → MS2 (:8002)
+```
 
-- **Puerto interno:** `8001` (lo espera el nginx de producción).
-- **Errores:** [contrato común](https://github.com/btoroled/cloud-computing-proyecto/blob/main/docs/contratos/errores.md).
-- **Enums y rangos de ID:** [diccionario compartido](https://github.com/btoroled/cloud-computing-proyecto/blob/main/docs/contratos/enums.md)
-  (`persona.id` / `pasajero.id` 100 000–160 000 · `ticket.id` 1–60 000).
-- **Imagen:** `git tag vX.Y && git push --tags` → `ghcr.io/cloud-mla/ms1-pasajeros-api:vX.Y`.
+## Prerrequisitos
 
-## Endpoints (previstos)
+- Docker + Docker Compose
+
+## Levantar local
+
+```bash
+# 1. Copiar entorno
+cp .env.example .env
+
+# 2. Base de datos
+docker compose up -d db
+
+# 3. Migraciones (necesita Python local para Alembic)
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+export DB_HOST=localhost DB_PORT=3306 DB_USER=pasajeros_user DB_PASSWORD=pasajeros_pass DB_NAME=pasajeros_db
+alembic upgrade head
+
+# 4. App
+docker compose up -d --build app
+
+# Verificar
+curl http://localhost:8001/health
+curl http://localhost:8001/docs
+```
+
+## Seed de desarrollo (opcional)
+
+```bash
+python -m app.scripts.seed_local   # 3 categorías + ~5k pasajeros
+```
+
+> Solo para dev/testing. Seeds de 20k para Hito 2 usan el generador
+> compartido (`aeropuerto-data-science/seeds/`).
+
+## Tests
+
+```bash
+DB_HOST=localhost DB_PORT=3306 DB_USER=test DB_PASSWORD=test DB_NAME=test \
+  python -m pytest tests/ -v    # 32 tests, SQLite in-memory, sin MySQL
+```
+
+## Endpoints
 
 | Método | Ruta | Descripción |
 |---|---|---|
 | GET | `/health` | Estado del servicio |
-| GET | `/docs` | Swagger-UI |
-| CRUD | `/pasajeros` | Pasajeros (búsqueda por `tipo_documento`+`numero_documento`) |
-| GET | `/categorias-migratorias` | Nacional / Internacional / Transito + tarifa TUUA |
+| GET | `/health/db` | Conexión a MySQL |
+| GET | `/categorias-migratorias` | Nacional / Internacional / Tránsito + tarifa TUUA |
+| POST | `/pasajeros` | Crea persona+pasajero; 409 si doc duplicado |
+| GET | `/pasajeros` | Lista; filtra por `tipo_documento` + `numero_documento` |
+| GET | `/pasajeros/{id}` | Devuelve pasajero; 404 si no existe |
+| GET | `/pasajeros/{id}/tickets` | Tickets del pasajero |
 | POST | `/tickets` | Emite ticket (valida vuelo contra MS2) |
-| GET | `/tickets/{id}`, `/tickets?vuelo_id=`, `/pasajeros/{id}/tickets` | Consultas |
-| POST | `/tickets/{id}/checkin` | Check-in (1:1 con ticket) |
-| POST/GET | `/equipajes` | Equipaje por pasajero / vuelo |
+| GET | `/tickets` | Lista; filtra por `vuelo_id` |
+| GET | `/tickets/{id}` | Devuelve ticket; 404 si no existe |
+| POST | `/tickets/{id}/checkin` | Check-in 1:1; segundo → 409 |
+| POST | `/equipajes` | Crea equipaje (tag único, valida vuelo vs MS2) |
+| GET | `/equipajes` | Lista; filtra por `pasajero_id` / `vuelo_id` |
+
+### Formato de errores
+
+```json
+{"error": {"code": "VUELO_NO_EXISTE", "message": "El vuelo 123 no existe en MS2"}}
+```
+
+Códigos: 400 validación · 404 no encontrado · 409 duplicado · 422 precondición
+(categoría/persona/vuelo inexistente o cancelado) · 502 MS2 no disponible.
+
+## Imagen GHCR
+
+```bash
+git tag v1.0 && git push origin v1.0
+# → ghcr.io/cloud-mla/ms1-pasajeros-api:v1.0 (BE-TX-05)
+```
+
+## Referencias
+
+- [Contrato API](docs/contratos/openapi.yaml) · [Guía completa](AGENTS.md)
+- E/R de la BD: `docs/er/ms1-mysql-er.*`
+- Evidencias: `docs/evidencias/backend/`

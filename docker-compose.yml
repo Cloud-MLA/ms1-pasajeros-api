@@ -1,0 +1,40 @@
+services:
+  db:
+    image: mysql:8
+    environment:
+      MYSQL_ROOT_PASSWORD: root_pass
+      MYSQL_DATABASE: pasajeros_db
+      MYSQL_USER: pasajeros_user
+      MYSQL_PASSWORD: pasajeros_pass
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot_pass"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: .
+    command: uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8001} --reload
+    ports:
+      - "8001:8001"
+    env_file: .env
+    environment:
+      PORT: 8001
+      DB_HOST: db
+      # Dev/CI: mock interno (fallback si MS2 está caído). MS2 real = cambiar a:
+      # MS2_BASE_URL: http://host.docker.internal:8002
+      MS2_BASE_URL: http://app:8001
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - .:/app
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+volumes:
+  mysql_data:
