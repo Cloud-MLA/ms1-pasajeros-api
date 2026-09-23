@@ -38,12 +38,12 @@
 ### POST /pasajeros
   POST http://localhost:8001/pasajeros -> 201
   {
-  "id_persona": 160001,
+  "id_persona": 160002,
   "nombre": "Juan",
   "apellido": "Perez",
   "fecha_nacimiento": "1992-04-11",
   "tipo_documento": "DNI",
-  "numero_documento": "79071948",
+  "numero_documento": "79233910",
   "id_categoria": 1
 }
 
@@ -65,28 +65,28 @@
   }
 }
 
-### GET /pasajeros/160001
-  GET http://localhost:8001/pasajeros/160001 -> 200
+### GET /pasajeros/160002
+  GET http://localhost:8001/pasajeros/160002 -> 200
   {
-  "id_persona": 160001,
+  "id_persona": 160002,
   "nombre": "Juan",
   "apellido": "Perez",
   "fecha_nacimiento": "1992-04-11",
   "tipo_documento": "DNI",
-  "numero_documento": "79071948",
+  "numero_documento": "79233910",
   "id_categoria": 1
 }
 
 ### GET /pasajeros?tipo_documento=&numero_documento=
-  GET http://localhost:8001/pasajeros?tipo_documento=DNI&numero_documento=79071948 -> 200
+  GET http://localhost:8001/pasajeros?tipo_documento=DNI&numero_documento=79233910 -> 200
   [
   {
-    "id_persona": 160001,
+    "id_persona": 160002,
     "nombre": "Juan",
     "apellido": "Perez",
     "fecha_nacimiento": "1992-04-11",
     "tipo_documento": "DNI",
-    "numero_documento": "79071948",
+    "numero_documento": "79233910",
     "id_categoria": 1
   }
 ]
@@ -94,12 +94,12 @@
 ### POST /tickets (vuelo ok 1)
   POST http://localhost:8001/tickets -> 201
   {
-  "id_ticket": 5,
+  "id_ticket": 25003,
   "precio": 185.0,
-  "fecha_emision": "2026-09-10",
+  "fecha_emision": "2026-09-12",
   "estado_boarding": "Emitido",
   "id_vuelo": 1,
-  "id_persona": 160001
+  "id_persona": 160002
 }
 
 ### POST /tickets (vuelo cancelado -> 422 19)
@@ -120,70 +120,94 @@
   }
 }
 
-### GET /tickets/5
-  GET http://localhost:8001/tickets/5 -> 200
+### GET /tickets/25003
+  GET http://localhost:8001/tickets/25003 -> 200
   {
-  "id_ticket": 5,
+  "id_ticket": 25003,
   "precio": 185.0,
-  "fecha_emision": "2026-09-10",
+  "fecha_emision": "2026-09-12",
   "estado_boarding": "Emitido",
   "id_vuelo": 1,
-  "id_persona": 160001
+  "id_persona": 160002
 }
 
 ### GET /tickets?vuelo_id=1
   GET http://localhost:8001/tickets?vuelo_id=1 -> 200
   [
   {
-    "id_ticket": 3,
-    "precio": 185.0,
-    "fecha_emision": "2026-09-10",
-    "estado_boarding": "Emitido",
+    "id_ticket": 6562,
+    "precio": 624.36,
+    "fecha_emision": "2026-07-16",
+    "estado_boarding": "Embarcado",
     "id_vuelo": 1,
-    "id_persona": 159999
+    "id_persona": 104364
   },
   {
-    "id_ticket": 4,
+    "id_ticket": 18108,
+    "precio": 649.64,
+    "fecha_emision": "2026-06-30",
+    "estado_boarding": "Embarcado",
+    "id_vuelo": 1,
+    "id_persona": 148918
+  },
+  {
+    "id_ticket": 24305,
+    "precio": 365.82,
+    "fecha_emision": "2026-08-23",
+    "estado_boarding": "Embarcado",
+    "id_vuelo": 1,
+    "id_persona": 105306
+  },
+  {
+    "id_ticket": 25001,
     "precio": 185.0,
-    "fecha_emision": "2026-09-10",
+    "fecha_emision": "2026-09-12",
     "estado_boarding": "Emitido",
     "id_vuelo": 1,
     "id_persona": 160000
   },
   {
-    "id_ticket": 5,
+    "id_ticket": 25002,
     "precio": 185.0,
-    "fecha_emision": "2026-09-10",
+    "fecha_emision": "2026-09-12",
     "estado_boarding": "Emitido",
     "id_vuelo": 1,
     "id_persona": 160001
+  },
+  {
+    "id_ticket": 25003,
+    "precio": 185.0,
+    "fecha_emision": "2026-09-12",
+    "estado_boarding": "Emitido",
+    "id_vuelo": 1,
+    "id_persona": 160002
   }
 ]
 
-### GET /pasajeros/160001/tickets
-  GET http://localhost:8001/pasajeros/160001/tickets -> 200
+### GET /pasajeros/160002/tickets
+  GET http://localhost:8001/pasajeros/160002/tickets -> 200
   [
   {
-    "id_ticket": 5,
+    "id_ticket": 25003,
     "precio": 185.0,
-    "fecha_emision": "2026-09-10",
+    "fecha_emision": "2026-09-12",
     "estado_boarding": "Emitido",
     "id_vuelo": 1,
-    "id_persona": 160001
+    "id_persona": 160002
   }
 ]
 
-### POST /tickets/5/checkin
-  POST http://localhost:8001/tickets/5/checkin -> 201
+### POST /tickets/25003/checkin
+  POST http://localhost:8001/tickets/25003/checkin -> 201
   {
-  "id_ticket": 5,
-  "fecha_hora": "2026-09-10T20:25:48",
+  "id_ticket": 25003,
+  "fecha_hora": "2026-09-12T17:25:10",
   "counter": null,
   "con_equipaje": false
 }
 
-### POST /tickets/5/checkin (2do -> 409)
-  POST http://localhost:8001/tickets/5/checkin -> 409
+### POST /tickets/25003/checkin (2do -> 409)
+  POST http://localhost:8001/tickets/25003/checkin -> 409
   {
   "error": {
     "code": "DUPLICADO",
@@ -203,9 +227,9 @@
 ### POST /equipajes (vuelo ok 1)
   POST http://localhost:8001/equipajes -> 201
   {
-  "id": "TAg90719480101",
+  "id": "TAg92339100001",
   "peso": 15.4,
-  "id_persona": 160001,
+  "id_persona": 160002,
   "id_vuelo": 1
 }
 
@@ -218,13 +242,13 @@
   }
 }
 
-### GET /equipajes?pasajero_id=160001
-  GET http://localhost:8001/equipajes?pasajero_id=160001 -> 200
+### GET /equipajes?pasajero_id=160002
+  GET http://localhost:8001/equipajes?pasajero_id=160002 -> 200
   [
   {
-    "id": "TAg90719480101",
+    "id": "TAg92339100001",
     "peso": 15.4,
-    "id_persona": 160001,
+    "id_persona": 160002,
     "id_vuelo": 1
   }
 ]
@@ -233,15 +257,45 @@
   GET http://localhost:8001/equipajes?vuelo_id=1 -> 200
   [
   {
-    "id": "TAg90719480101",
+    "id": "BHS0000005958",
+    "peso": 24.79,
+    "id_persona": 104364,
+    "id_vuelo": 1
+  },
+  {
+    "id": "BHS0000016462",
+    "peso": 17.78,
+    "id_persona": 148918,
+    "id_vuelo": 1
+  },
+  {
+    "id": "BHS0000016463",
+    "peso": 21.88,
+    "id_persona": 148918,
+    "id_vuelo": 1
+  },
+  {
+    "id": "BHS0000022173",
+    "peso": 32.0,
+    "id_persona": 105306,
+    "id_vuelo": 1
+  },
+  {
+    "id": "TAg92331072461",
+    "peso": 15.4,
+    "id_persona": 160000,
+    "id_vuelo": 1
+  },
+  {
+    "id": "TAg92332024241",
     "peso": 15.4,
     "id_persona": 160001,
     "id_vuelo": 1
   },
   {
-    "id": "TAgSMOKE001",
+    "id": "TAg92339100001",
     "peso": 15.4,
-    "id_persona": 159999,
+    "id_persona": 160002,
     "id_vuelo": 1
   }
 ]
